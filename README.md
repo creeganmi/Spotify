@@ -1,4 +1,3 @@
-![counter](https://[YourEndpoint].m.pipedream.net)
 
 ![Github stats](https://github-readme-stats.vercel.app/api?username=creeganmi)
 ![Github stats](https://github-readme-stats.vercel.app/api?username=czarnsr)
