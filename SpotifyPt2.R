@@ -82,6 +82,9 @@ top.sentiment %>%
 top.sentiment %>%
   anti_join(top.sentiment2, by = 'word')
 
+top.sentiment2 %>%
+  anti_join(top.sentiment, by = 'word')
+
 ## create column using red and green to show if sentiment is below or above 0 ##
 top.sentiment$color <- ifelse(top.sentiment$value < 0, "red","green")
 top.sentiment2$color <- ifelse(top.sentiment2$value < 0, "red","green")
