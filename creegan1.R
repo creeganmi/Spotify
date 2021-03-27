@@ -534,7 +534,7 @@ names(df)
 df$artist
 
 ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for you!",
-                         tabPanel("Genre",
+                         tabPanel("Popularity",
                                   sidebarPanel(
                                     # Genre Selection
                                     
@@ -542,7 +542,7 @@ ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for
                                                 unique(df$grouped_genre), multiple = FALSE),
                                     verbatimTextOutput("pop"),
                                     
-                                    sliderInput(inputId = "range", label = "Popularity or Mood?",
+                                    sliderInput(inputId = "range", label = "Popularity",
                                                 min = min(df$pop),max = 100,value = c(55,100))
                                   ),
                                   mainPanel(
@@ -550,16 +550,16 @@ ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for
                                     DT::dataTableOutput(outputId = "songsreco")
                                   )
                          ),
-                         tabPanel("Artist",
-                                  sidebarPanel(selectInput(inputId = "artist", label = "Which singer do you like?",
-                                                           unique(df$title), multiple = FALSE),
-                                               verbatimTextOutput("Taylor Swift"),
+                         tabPanel("Sentiment",
+                                  sidebarPanel(selectInput(inputId = "Columns", label = "Select Genre",
+                                                           unique(df$grouped_genre), multiple = FALSE),
+                                               verbatimTextOutput("pop"),
                                                
-                                               sliderInput(inputId = "range_2", label = "Popularity or Mood?",
+                                               sliderInput(inputId = "range_2", label = "Sentiment",
                                                            min = min(df$pop),max = 100,value = c(55,100))),
                                   mainPanel(
-                                    h2("Top songs of the artist"),
-                                    DT::dataTableOutput(outputId = "songsreco_artist")))))
+                                    h2("Top songs of the genre"),
+                                    DT::dataTableOutput(outputId = "songsreco")))))
 
 server <- function(input, output) {}
 
