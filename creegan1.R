@@ -444,38 +444,29 @@ year_plot <- ggplot(plot_year,aes(x = year, y = count,group = 1)) +
 names(df)
 unique(df$genre)
 
+df <- df %>%
+  mutate(grouped_genre = case_when(genre %in% c("canadian pop","australian pop","hip pop"
+                                                ,"indie pop","boy band","folk-pop","dance pop"
+                                                ,"barbadian pop","art pop","baroque pop"
+                                                ,"metropopolis","danish pop","pop","colombian pop"
+                                                ,"acoustic pop","candy pop","moroccan pop") ~ "pop",
+                                   genre %in% c("big room","electro","downtempo","escape room" 
+                                                ,"complextro", "electropop","electronic trap"
+                                                ,"brostep","australian dance","tropical house"
+                                                ,"edm","house","belgian edm","electrohouse", "electro house") ~ "edm",
+                                   genre %in% c("australian hip hop","detroit hip hop","hip hop"
+                                                ,"canadian hip hop","atl hip hop") ~ "hiphop",
+                                   genre %in% c("canadian latin","latin") ~ "latin",
+                                   genre %in% c("permanent wave","alaska indie","french indie pop")  ~ "alternative",
+                                   genre %in% c("neo mellow","canadian contemporary r&b"
+                                                ,"british soul","irish singer-songwriter"
+                                                ,"alternative r&b") ~ "rnb",
+                                   genre %in% c("chicago rap","hollywood")  ~ "rap",
+                                   genre %in% c("contemporary country","celtic rock") ~ "rock",
+                                   TRUE ~ "other"))
 
-alternative <- c("permanent wave","alaska indie","french indie pop")
-edm <- c("big room","electro","downtempo","escape room" 
-         ,"complextro", "electropop","electronic trap"
-         ,"brostep","australian dance","tropical house"
-         ,"edm","house","belgian edm","electrohouse")
-hiphop <- c("australian hip hop","detroit hip hop","hip hop"
-            ,"canadian hip hop","atl hip hop")
-latin <- c("canadian latin","latin")
-pop <- c("canadian pop","australian pop","hip pop"
-         ,"indie pop","boy band","folk-pop","dance pop"
-         ,"barbadian pop","art pop","baroque pop"
-         ,"metropopolis","danish pop","pop","colombian pop"
-         ,"acoustic pop","candy pop","moroccan pop")
-rnb <- c("neo mellow","canadian contemporary r&b"
-         ,"british soul","irish singer-songwriter"
-         ,"alternative r&b")
-rap <- c("chicago rap","hollywood")
-rock <- c("contemporary country","celtic rock")
 
 pop
-
-df <- df %>%
-  mutate(grouped_genre = case_when(genre %in% pop ~ "pop",
-                                   genre %in% edm ~ "edm",
-                                   genre %in% hiphop ~ "hiphop",
-                                   genre %in% latin ~ "latin",
-                                   genre %in% alternative ~ "alternative",
-                                   genre %in% rnb ~ "rnb",
-                                   genre %in% rap ~ "rap",
-                                   genre %in% rock ~ "rock",
-                                   TRUE ~ df$genre))
 View(df)
 unique(df$grouped_genre)
 
@@ -507,7 +498,7 @@ kable(genre_description , format = "html") %>%
 names <- names(df)[c(6:15)]
 
 avg_genre_matrix <- df %>%
-  group_by(genre) %>%
+  group_by(grouped_genre) %>%
   summarise_if(is.numeric, mean, na.rm = TRUE) %>%
   ungroup() 
 
@@ -518,8 +509,8 @@ avg_genre_cor <- avg_genre_matrix %>%
   as.matrix() %>%
   cor() 
 
-colnames(avg_genre_cor) <- avg_genre_matrix$genre
-row.names(avg_genre_cor) <- avg_genre_matrix$genre
+colnames(avg_genre_cor) <- avg_genre_matrix$grouped_genre
+row.names(avg_genre_cor) <- avg_genre_matrix$grouped_genre
 
 ##need to get the grouped_genre case statement to work to show this correctly##
 avg_genre_cor %>% 
