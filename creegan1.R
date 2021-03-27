@@ -564,6 +564,7 @@ ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for
 server <- function(input, output) {}
 
 shinyApp(ui = ui, server = server)
+
   
   
   
