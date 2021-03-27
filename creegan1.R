@@ -524,3 +524,48 @@ avg_genre_cor %>%
                      mar = c(2,2,2,2),
                      main = 'Correlation Between Mean Genre Feature Values',
                      family = 'Avenir')
+
+#recommender#
+library(shiny)
+library(shinythemes)
+library(plotly)
+
+names(df)
+df$artist
+
+ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for you!",
+                         tabPanel("Genre",
+                                  sidebarPanel(
+                                    # Genre Selection
+                                    
+                                    selectInput(inputId = "Columns", label = "Select Genre",
+                                                unique(df$grouped_genre), multiple = FALSE),
+                                    verbatimTextOutput("pop"),
+                                    
+                                    sliderInput(inputId = "range", label = "Popularity or Mood?",
+                                                min = min(df$pop),max = 100,value = c(55,100))
+                                  ),
+                                  mainPanel(
+                                    h2("Top songs of the genre"),
+                                    DT::dataTableOutput(outputId = "songsreco")
+                                  )
+                         ),
+                         tabPanel("Artist",
+                                  sidebarPanel(selectInput(inputId = "artist", label = "Which singer do you like?",
+                                                           unique(df$title), multiple = FALSE),
+                                               verbatimTextOutput("Taylor Swift"),
+                                               
+                                               sliderInput(inputId = "range_2", label = "Popularity or Mood?",
+                                                           min = min(df$pop),max = 100,value = c(55,100))),
+                                  mainPanel(
+                                    h2("Top songs of the artist"),
+                                    DT::dataTableOutput(outputId = "songsreco_artist")))))
+
+server <- function(input, output) {}
+
+shinyApp(ui = ui, server = server)
+  
+  
+  
+  
+  
