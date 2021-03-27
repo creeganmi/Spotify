@@ -525,7 +525,7 @@ avg_genre_cor %>%
                      main = 'Correlation Between Mean Genre Feature Values',
                      family = 'Avenir')
 
-#recommender#
+#recommendation engine UI#
 library(shiny)
 library(shinythemes)
 library(plotly)
@@ -565,7 +565,46 @@ server <- function(input, output) {}
 
 shinyApp(ui = ui, server = server)
 
+##recommendation engine server logic##
+
+shinyServer(function(input, output) {
   
+  datasetInput <- reactive({
+    
+    # Filtering based on genre and rating
+    songs %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
+      group_by(title) %>% filter(pop >= as.numeric(input$range[1]), pop <= as.numeric(input$range[2])) %>%
+      arrange(desc(pop)) %>%
+      select(title, artist, pop, grouped_genre) %>%
+      rename(`song` = title, `Genre(s)` = grouped_genre)
+    
+    
+  })
+  
+  datasetInput2 <- reactive({
+    
+    # Filtering based on genre and sentiment
+    songs %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
+      group_by(title) %>% filter(pop >= as.numeric(input$range[1]), pop <= as.numeric(input$range[2])) %>%
+      arrange(desc(pop)) %>%
+      select(title, artist, pop, grouped_genre) %>%
+      rename(`song` = title, `Genre(s)` = grouped_genre)
+    
+    
+  })
+  
+  
+  #Rendering the table
+  output$songsreco <- DT::renderDataTable({
+    
+    DT::datatable(head(datasetInput(), n = 50), escape = FALSE, options = list(scrollX = '1000px'))
+  })
+  
+  output$songsreco_artist <- DT::renderDataTable({
+    
+    DT::datatable(head(datasetInput2(), n = 100), escape = FALSE, options = list(scrollX = '1000px'))
+  })
+})
   
   
   
