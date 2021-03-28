@@ -396,50 +396,39 @@ sqrt(mean((predlsa-test$pop)^2))
 
 ##sentiment column##
 
-lexicon <- get_sentiments("afinn")
-glimpse(lexicon)
+#df2 <- df %>% 
+#  mutate( title = gsub("'", "", title), #remove '
+#          title = gsub("\\s*\\([^\\)]+\\)\\s*$", "", title), #remove information between parenthesis
+#lyricTBL <- df %>%
+#  select(title, artist, lyrics)
+#topSongTBL <- df
 
-head(df)
 
-names(df)
-lyricTBL <- df %>%
-  select(title, artist, lyrics)
-  
-  
-topSongTBL <- df
+##sentiment function that didn't work correctly##
 
-##sentiment function v1 that isn't working##
-df2 <- df %>% 
-  mutate( title = gsub("'", "", title), #remove '
-          title = gsub("\\s*\\([^\\)]+\\)\\s*$", "", title), #remove information between parenthesis
-          title = gsub("+", "", title))
-head(df2)
+#Sentiment <- sapply(
+#  X = 1:nrow(df)
+#  , FUN = function(row_num, topSongTBL){
+#    
+#    sentiment <- df %>%
+#        unnest_tokens(word, lyrics) %>%
+#        select(word) %>%
+#        inner_join(lexicon) %>%
+#        summarise(score = sum(value))
+#      
+#      sentiment <- sentiment[[1]]
+#      
+#      error = function(e){
+#      print(paste0("Failed for song name: ", topSongTBL[["title"]][row_num]))
+#    }
+#    return(sentiment)
+#  }
+#  , topSongTBL = df
+#)
 
-names(df)
+#print(head(as.data.frame(Sentiment)))
 
-Sentiment <- sapply(
-  X = 1:nrow(df)
-  , FUN = function(row_num, topSongTBL){
-    
-    sentiment <- df %>%
-        unnest_tokens(word, lyrics) %>%
-        select(word) %>%
-        inner_join(lexicon) %>%
-        summarise(score = sum(value))
-      
-      sentiment <- sentiment[[1]]
-      
-      error = function(e){
-      print(paste0("Failed for song name: ", topSongTBL[["title"]][row_num]))
-    }
-    return(sentiment)
-  }
-  , topSongTBL = df
-)
-
-print(head(as.data.frame(Sentiment)))
-
-Sentiment
+#Sentiment
 
 ##genre analysis##
 unique(df$genre)
@@ -589,87 +578,41 @@ avg_genre_cor %>%
                      mar = c(2,2,2,2),
                      main = 'Correlation Between Mean Genre Feature Values',
                      family = 'Avenir')
+##sentiment column#
+
+names(df)
+
+lexicon <- get_sentiments("afinn")
+glimpse(lexicon)
+
+sentiment <- df %>%
+  unnest_tokens(word, lyrics, drop=FALSE) %>%
+  inner_join(lexicon) %>%
+  group_by(id, title, artist, genre, year, bpm, nrgy, dnce, dB, live, val, dur,
+           acous, spch, pop, lyrics, grouped_genre) %>% # or add more columns to the group_by to retain all info
+  summarise(score = sum(value))
+
+dim(sentiment)
+
+print(head(as.data.frame(sentiment)))
+
+sentiment
+
 
 #recommendation engine UI#
 
-dfSentiment <- cbind(df, Sentiment)
-dfSentiment
+View(df)
+View(sentiment)
 
+##difference in records between df and sentiment##
+library(arsenal)
+summary(comparedf(df, sentiment))
+summary(comparedf(df, sentiment, by = "id"))
 
-ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for you!",
-                         tabPanel("Popularity",
-                                  sidebarPanel(
-                                    # Genre Selection
-                                    
-                                    selectInput(inputId = "Columns", label = "Select Genre",
-                                                unique(dfSentiment$grouped_genre), multiple = FALSE),
-                                    verbatimTextOutput("pop"),
-                                    
-                                    sliderInput(inputId = "range", label = "Popularity",
-                                                min = min(dfSentiment$pop),max = 100,value = c(55,100))
-                                  ),
-                                  mainPanel(
-                                    h2("Top songs of the genre"),
-                                    DT::dataTableOutput(outputId = "songsreco")
-                                  )
-                         ),
-                         tabPanel("Sentiment",
-                                  sidebarPanel(selectInput(inputId = "Columns", label = "Select Genre",
-                                                           unique(dfSentiment$grouped_genre), multiple = FALSE),
-                                               verbatimTextOutput("Sentiment"),
-                                               
-                                               sliderInput(inputId = "range_2", label = "Sentiment",
-                                                           min = min(dfSentiment$Sentiment),max = 100,value = c(55,100))),
-                                  mainPanel(
-                                    h2("Top songs of the genre"),
-                                    DT::dataTableOutput(outputId = "songsreco")))))
+names(sentiment)
+names(df)
 
-server <- function(input, output) {}
+dfSentiment <- left_join(sentiment, df)
+View(dfSentiment)
 
-shinyApp(ui = ui, server = server)
-
-##recommendation engine server logic##
-
-shinyServer(function(input, output) {
-  
-  datasetInput <- reactive({
-    
-    # Filtering based on genre and rating
-    dfSentiment %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
-      group_by(title) %>% filter(pop >= as.numeric(input$range[1]), pop <= as.numeric(input$range[2])) %>%
-      arrange(desc(pop)) %>%
-      select(title, artist, pop, grouped_genre) %>%
-      rename(`title` = title, `Genre(s)` = grouped_genre)
-    
-    
-  })
-  
-  datasetInput2 <- reactive({
-    
-    # Filtering based on genre and sentiment
-    dfSentiment %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
-      group_by(title) %>% filter(pop >= as.numeric(input$range[1]), pop <= as.numeric(input$range[2])) %>%
-      arrange(desc(Sentiment)) %>%
-      select(title, artist, Sentiment, grouped_genre) %>%
-      rename(`title` = title, `Genre(s)` = grouped_genre)
-    
-    
-  })
-  
-  
-  #Rendering the table
-  output$songsreco <- DT::renderDataTable({
-    
-    DT::datatable(head(datasetInput(), n = 50), escape = FALSE, options = list(scrollX = '1000px'))
-  })
-  
-  output$songsreco_artist <- DT::renderDataTable({
-    
-    DT::datatable(head(datasetInput2(), n = 100), escape = FALSE, options = list(scrollX = '1000px'))
-  })
-})
-
-  
-  
-  
-  
+##go to shiny.R file to see my code for the ui & server for the recommendation engine :)##
