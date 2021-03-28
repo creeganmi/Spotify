@@ -654,6 +654,7 @@ shinyServer(function(input, output) {
     DT::datatable(head(datasetInput2(), n = 100), escape = FALSE, options = list(scrollX = '1000px'))
   })
 })
+
   
   
   
