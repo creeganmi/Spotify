@@ -1,8 +1,27 @@
 ## Authors: Patrick Alvermann, Arielle Brandt, Michael Creegan, Clara Foung, and Nikolai Romanov ##
 ## Date: March 1, 2021 ##
 
-library (readr)
+library(readr)
 library(dplyr)
+library(kableExtra)
+library(stringr)
+library(ggplot2)
+library(ggthemes)
+library(textdata)
+library(tidytext)
+library(lexicon)
+library(wordcloud)
+library(tm)
+library(SnowballC) 
+library(magrittr)
+library(tidyr)
+library(topicmodels)
+library(rpart)
+library(lsa)
+library(shiny)
+library(shinythemes)
+library(plotly)
+
 
 ## Load data into R with lyrics from Github ##
 urllyric <- "https://raw.githubusercontent.com/creeganmi/Spotify/851b5a48c307e1a33c25df9f80750eb0192d1aa5/Spotify%20Project%20-%20Lyrics%20-%20Sheet1.csv"
@@ -375,6 +394,39 @@ lsamodel = rpart(pop~.-id,train)
 predlsa = predict(lsamodel,newdata = test)
 sqrt(mean((predlsa-test$pop)^2))
 
+##sentiment column##
+
+lexicon <- get_sentiments("afinn")
+glimpse(lexicon)
+
+names(df)
+lyricTBL <- (df$lyrics)
+topSongTBL <- df
+
+Sentiment <- sapply(
+  X = 1:nrow(df)
+  , FUN = function(row_num, topSongTBL){
+    
+    sentiment <- df %>%
+        unnest_tokens(word, lyrics) %>%
+        select(word) %>%
+        inner_join(lexicon) %>%
+        summarise(score = sum(value))
+      
+      sentiment <- sentiment[[1]]
+      
+      error = function(e){
+      print(paste0("Failed for song name: ", topSongTBL[["title"]][row_num]))
+    }
+    return(sentiment)
+  }
+  , topSongTBL = df
+)
+
+print(head(as.data.frame(Sentiment)))
+
+Sentiment
+
 ##genre analysis##
 unique(df$genre)
 
@@ -488,8 +540,6 @@ genre_description <- df %>%
             Duration = mean(dur),
             Popularity = mean(pop))
 
-library(kableExtra)
-
 kable(genre_description , format = "html") %>%
   kable_styling(bootstrap_options = "striped") %>%
   column_spec(2, width = "12em")
@@ -512,6 +562,7 @@ avg_genre_cor <- avg_genre_matrix %>%
 colnames(avg_genre_cor) <- avg_genre_matrix$grouped_genre
 row.names(avg_genre_cor) <- avg_genre_matrix$grouped_genre
 
+
 ##need to get the grouped_genre case statement to work to show this correctly##
 avg_genre_cor %>% 
   corrplot::corrplot(method = 'color', 
@@ -526,12 +577,10 @@ avg_genre_cor %>%
                      family = 'Avenir')
 
 #recommendation engine UI#
-library(shiny)
-library(shinythemes)
-library(plotly)
 
-names(df)
-df$artist
+dfSentiment <- cbind(df, Sentiment)
+dfSentiment
+
 
 ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for you!",
                          tabPanel("Popularity",
@@ -539,11 +588,11 @@ ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for
                                     # Genre Selection
                                     
                                     selectInput(inputId = "Columns", label = "Select Genre",
-                                                unique(df$grouped_genre), multiple = FALSE),
+                                                unique(dfSentiment$grouped_genre), multiple = FALSE),
                                     verbatimTextOutput("pop"),
                                     
                                     sliderInput(inputId = "range", label = "Popularity",
-                                                min = min(df$pop),max = 100,value = c(55,100))
+                                                min = min(dfSentiment$pop),max = 100,value = c(55,100))
                                   ),
                                   mainPanel(
                                     h2("Top songs of the genre"),
@@ -552,11 +601,11 @@ ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for
                          ),
                          tabPanel("Sentiment",
                                   sidebarPanel(selectInput(inputId = "Columns", label = "Select Genre",
-                                                           unique(df$grouped_genre), multiple = FALSE),
-                                               verbatimTextOutput("pop"),
+                                                           unique(dfSentiment$grouped_genre), multiple = FALSE),
+                                               verbatimTextOutput("Sentiment"),
                                                
                                                sliderInput(inputId = "range_2", label = "Sentiment",
-                                                           min = min(df$pop),max = 100,value = c(55,100))),
+                                                           min = min(dfSentiment$Sentiment),max = 100,value = c(55,100))),
                                   mainPanel(
                                     h2("Top songs of the genre"),
                                     DT::dataTableOutput(outputId = "songsreco")))))
@@ -572,11 +621,11 @@ shinyServer(function(input, output) {
   datasetInput <- reactive({
     
     # Filtering based on genre and rating
-    songs %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
+    dfSentiment %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
       group_by(title) %>% filter(pop >= as.numeric(input$range[1]), pop <= as.numeric(input$range[2])) %>%
       arrange(desc(pop)) %>%
       select(title, artist, pop, grouped_genre) %>%
-      rename(`song` = title, `Genre(s)` = grouped_genre)
+      rename(`title` = title, `Genre(s)` = grouped_genre)
     
     
   })
@@ -584,11 +633,11 @@ shinyServer(function(input, output) {
   datasetInput2 <- reactive({
     
     # Filtering based on genre and sentiment
-    songs %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
+    dfSentiment %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
       group_by(title) %>% filter(pop >= as.numeric(input$range[1]), pop <= as.numeric(input$range[2])) %>%
-      arrange(desc(pop)) %>%
-      select(title, artist, pop, grouped_genre) %>%
-      rename(`song` = title, `Genre(s)` = grouped_genre)
+      arrange(desc(Sentiment)) %>%
+      select(title, artist, Sentiment, grouped_genre) %>%
+      rename(`title` = title, `Genre(s)` = grouped_genre)
     
     
   })
