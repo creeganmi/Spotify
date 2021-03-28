@@ -33,7 +33,7 @@ head(df)
 ## Check if there are any na's / inf values ##
 apply(df, 2, function(x) any(is.na(x)))
 indx <- apply(df, 2, function(x) any(is.na(x) | is.infinite(x)))
-colnames[indx]
+isTRUE(indx)
 
 ## Summary Statistics ##
 
@@ -399,9 +399,23 @@ sqrt(mean((predlsa-test$pop)^2))
 lexicon <- get_sentiments("afinn")
 glimpse(lexicon)
 
+head(df)
+
 names(df)
-lyricTBL <- (df$lyrics)
+lyricTBL <- df %>%
+  select(title, artist, lyrics)
+  
+  
 topSongTBL <- df
+
+##sentiment function v1 that isn't working##
+df2 <- df %>% 
+  mutate( title = gsub("'", "", title), #remove '
+          title = gsub("\\s*\\([^\\)]+\\)\\s*$", "", title), #remove information between parenthesis
+          title = gsub("+", "", title))
+head(df2)
+
+names(df)
 
 Sentiment <- sapply(
   X = 1:nrow(df)
@@ -528,7 +542,7 @@ df %>%
 
 
 genre_description <- df %>% 
-  group_by(genre = genre) %>%
+  group_by(grouped_genre = grouped_genre) %>%
   summarise(Danceability = mean(dnce),
             Energy = mean(nrgy),
             Loudness = mean(dB),
