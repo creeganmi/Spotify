@@ -1,5 +1,5 @@
-## Authors: Patrick Alvermann, Arielle Brandt, Michael Creegan, Clara Foung, and Nikolai Romanov ##
-## Date: March 1, 2021 ##
+## Author: Michael Creegan ##
+## Date: March 29, 2021 ##
 
 library(readr)
 library(dplyr)
@@ -238,162 +238,6 @@ df %>%
             by = c('word'='word'))
 
 
-## Visualizing Text ##
-
-## Word Cloud ##
-
-library(wordcloud)
-wordcloudData = 
-  df%>%
-  group_by(id)%>%
-  unnest_tokens(output=word,input=lyrics)%>%
-  ungroup()%>%
-  select(id,word)%>%
-  anti_join(stop_words)%>%
-  group_by(word)%>%
-  summarize(freq = n())%>%
-  arrange(desc(freq))%>%
-  ungroup()%>%
-  data.frame()
-
-
-library(wordcloud)
-set.seed(617)
-wordcloud(words = wordcloudData$word,wordcloudData$freq,scale=c(2,0.5),max.words = 100,colors=brewer.pal(9,"Spectral"))
-
-## Comparison Cloud ##
-library(tidyr)
-wordcloudData = 
-  df%>%
-  group_by(id)%>%
-  unnest_tokens(output=word,input=lyrics)%>%
-  ungroup()%>%
-  select(id,word)%>%
-  anti_join(stop_words)%>%
-  inner_join(get_sentiments('bing'))%>%
-  ungroup()%>%
-  count(sentiment,word,sort=T)%>%
-  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0)%>%
-  data.frame()
-rownames(wordcloudData) = wordcloudData[,'word']
-wordcloudData = wordcloudData[,c('positive','negative')]
-set.seed(617)
-comparison.cloud(term.matrix = wordcloudData,scale = c(2,0.5),max.words = 200, rot.per=0)
-
-## Document Term Matrix ##
-library(tm); library(SnowballC); library(magrittr)
-corpus = Corpus(VectorSource(df$lyrics))
-corpus = 
-  corpus%>%
-  tm_map(content_transformer(tolower))%>%
-  tm_map(content_transformer(FUN = function(x)gsub(pattern = 'http[[:alnum:][:punct:]]*', replacement = ' ',x = x)))%>%
-  tm_map(removePunctuation)%>%
-  tm_map(removeWords, c(stopwords('english')))
-
-dict = findFreqTerms(DocumentTermMatrix(Corpus(VectorSource(df$lyrics))),lowfreq = 0)
-dict_corpus = Corpus(VectorSource(dict))
-
-corpus = 
-  corpus %>%
-  tm_map(stemDocument)%>%
-  tm_map(stripWhitespace)
-
-dtm = DocumentTermMatrix(corpus)
-xdtm = removeSparseTerms(dtm,sparse = 0.95)
-xdtm = as.data.frame(as.matrix(xdtm))
-colnames(xdtm) = stemCompletion(x = colnames(xdtm),dictionary = dict_corpus,type = 'prevalent')
-colnames(xdtm) = make.names(colnames(xdtm))
-
-xdtm <- xdtm %>% select(-X)
-
-
-## Topic Model ##
-which(rowSums(xdtm)==0)
-xdtm_topic = xdtm[which(rowSums(xdtm)!=0),]
-
-## Create 5 Topics ##
-library(topicmodels)
-set.seed(617)
-topic5 = LDA(x = xdtm_topic,k = 5)
-
-## Top 10 Terms in Each Topic ##
-terms(topic5,10)
-
-length(unique(topic5@terms))
-exp(topic5@beta) #term topic probabilities
-
-## List of All Terms by Topic ##
-topic5@terms
-
-## Term - Topic Probabilities ##
-df_beta = data.frame(t(exp(topic5@beta)),row.names = topic5@terms)
-
-colnames(df_beta) = c('topic1','topic2', 'topic3','topic4','topic5')
-
-df_beta[1:20,]
-
-## Visualize Term Topic Probabilities ##
-library(tidytext); library(dplyr); library(ggplot2); library(tidyr)
-topic5 %>%
-  tidy(matrix='beta')%>%
-  group_by(topic)%>%
-  top_n(n = 10,wt=beta)%>%
-  ungroup()%>%
-  ggplot(aes(x=reorder(term,beta),y=beta,fill=factor(topic)))+
-  geom_bar(position='dodge', stat='identity')+
-  facet_wrap(~topic, scales = 'free')+
-  coord_flip()+guides(fill=F)+xlab('')
-
-## Document Topic Probabilities ##
-# topic5@gamma # document topic probabilities
-df_gamma = cbind(as.integer(topic5@documents), topic5@gamma)
-colnames(df_gamma) = c('id','topic1','topic2','topic3','topic4','topic5')
-df_gamma[1:10,]  # Document probabilities for first 10 documents
-
-## Visualize Topics first 20 Documents ##
-library(tidytext); library(dplyr); library(ggplot2); library(tidyr)
-topic5%>%
-  tidy('gamma')%>%
-  filter(as.integer(document)<=20)%>%
-  ggplot(aes(x=reorder(document,as.numeric(document)),y=gamma,fill=factor(topic)))+
-  geom_bar(position='fill',stat='identity')+xlab('id')+guides(fill=F)+coord_flip()
-
-## Combine Topics with Original Data ##
-text_topics = cbind(as.integer(topic5@documents),topic5@gamma)
-colnames(text_topics) = c('id','topic1','topic2','topic3','topic4','topic5')
-text_topics = merge(x = text_topics,y = df,by=c('id','id'))
-head(text_topics)
-
-## Predict Topic Model ##
-set.seed(617)
-split = sample(1:nrow(text_topics),size = 0.7*nrow(text_topics))
-train = text_topics[split,]
-test = text_topics[-split,]
-
-library(rpart)
-topicmodel = rpart(pop~topic1+topic2+topic3+topic4+topic5,train)
-predtopic = predict(topicmodel,newdata = test)
-sqrt(mean((predtopic-test$pop)^2))
-
-## Latent Semantic Analysis ##
-library(lsa)
-clusters = lsa(xdtm)
-# lsa decomposes data into three matrices. The term matrix contains the dimensions from svd
-clusters$tk = as.data.frame(clusters$tk)
-colnames(clusters$tk) = paste0("dim",1:57)
-head(clusters$tk)
-
-clusters_data = cbind(id = df$id, pop = df$pop, clusters$tk)
-
-set.seed(617)
-split = sample(1:nrow(clusters_data),size = 0.7*nrow(clusters_data))
-train = clusters_data[split,]
-test = clusters_data[-split,]
-
-lsamodel = rpart(pop~.-id,train)
-predlsa = predict(lsamodel,newdata = test)
-sqrt(mean((predlsa-test$pop)^2))
-
 ##sentiment column##
 
 #df2 <- df %>% 
@@ -600,19 +444,11 @@ sentiment
 
 
 #recommendation engine UI#
-
-View(df)
-View(sentiment)
-
 ##difference in records between df and sentiment##
 library(arsenal)
 summary(comparedf(df, sentiment))
 summary(comparedf(df, sentiment, by = "id"))
 
-names(sentiment)
-names(df)
-
 dfSentiment <- left_join(sentiment, df)
-View(dfSentiment)
 
 ##go to shiny.R file to see my code for the ui & server for the recommendation engine :)##
