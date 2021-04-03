@@ -424,23 +424,34 @@ avg_genre_cor %>%
                      family = 'Avenir')
 ##sentiment column#
 
-names(df)
+afinn <- get_sentiments("afinn")
+glimpse(afinn)
 
-lexicon <- get_sentiments("afinn")
-glimpse(lexicon)
+nrc <- get_sentiments("nrc")
+glimpse(nrc)
+
+bing <- get_sentiments("bing")
+glimpse(bing)
+
+loughran <- get_sentiments("loughran")
+glimpse(loughran)
+
+#want to have sentiment on a numerical scale so we use afinn
 
 sentiment <- df %>%
   unnest_tokens(word, lyrics, drop=FALSE) %>%
-  inner_join(lexicon) %>%
+  inner_join(afinn) %>%
   group_by(id, title, artist, genre, year, bpm, nrgy, dnce, dB, live, val, dur,
            acous, spch, pop, lyrics, grouped_genre) %>% # or add more columns to the group_by to retain all info
-  summarise(score = sum(value))
+  summarise(afinn = sum(value))
 
 dim(sentiment)
 
 print(head(as.data.frame(sentiment)))
 
 sentiment
+
+View(sentiment)
 
 
 #recommendation engine UI#
