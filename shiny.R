@@ -26,7 +26,7 @@ ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for
                                                verbatimTextOutput("sentiment"),
                                                
                                                sliderInput(inputId = "range_2", label = "sentiment",
-                                                           min = min(dfSentiment$score),max = max(dfSentiment$score),value = c(55,303))),
+                                                           min = min(dfSentiment$afinn),max = max(dfSentiment$afinn),value = c(55,303))),
                                   mainPanel(
                                     h2("Top songs of the genre"),
                                     DT::dataTableOutput(outputId = "songsreco2")))))
@@ -55,9 +55,9 @@ server <- function(input, output) {
     
     # Filtering based on genre and sentiment
     dfSentiment %>% filter(grouped_genre %in% as.vector(input$Columns)) %>%
-      group_by(title) %>% filter(score >= as.numeric(input$range[1]), score <= as.numeric(input$range[2])) %>%
-      arrange(desc(score)) %>%
-      select(title, artist, score, grouped_genre) %>%
+      group_by(title) %>% filter(afinn >= as.numeric(input$range[1]), afinn <= as.numeric(input$range[2])) %>%
+      arrange(desc(afinn)) %>%
+      select(title, artist, afinn, grouped_genre) %>%
       rename(`title` = title, `Genre(s)` = grouped_genre)
     
     
