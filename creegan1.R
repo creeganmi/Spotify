@@ -447,12 +447,61 @@ sentiment <- df %>%
 
 dim(sentiment)
 
+names(sentiment)
 print(head(as.data.frame(sentiment)))
 
 sentiment
 
 View(sentiment)
 
+genre_description <- sentiment %>% 
+  group_by(grouped_genre = grouped_genre) %>%
+  summarise(Danceability = mean(dnce),
+            Energy = mean(nrgy),
+            Loudness = mean(dB),
+            Speechiness = mean(spch),
+            Acousticness = mean(acous),
+            Liveness = mean(live),
+            Valence = mean(val),
+            Tempo = mean(bpm),
+            Duration = mean(dur),
+            Popularity = mean(pop),
+            Sentiment = mean(afinn))
+
+kable(genre_description , format = "html") %>%
+  kable_styling(bootstrap_options = "striped") %>%
+  column_spec(2, width = "12em")
+
+
+names <- names(df)[c(6:15)]
+
+avg_genre_matrix <- sentiment %>%
+  group_by(grouped_genre) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+  ungroup() 
+
+avg_genre_cor <- avg_genre_matrix %>%
+  select(names, ) %>% 
+  scale() %>%
+  t() %>%
+  as.matrix() %>%
+  cor() 
+
+colnames(avg_genre_cor) <- avg_genre_matrix$grouped_genre
+row.names(avg_genre_cor) <- avg_genre_matrix$grouped_genre
+
+
+avg_genre_cor %>% 
+  corrplot::corrplot(method = 'color', 
+                     order = 'hclust',
+                     type = 'upper',
+                     tl.col = 'black',
+                     diag = FALSE,
+                     addCoef.col = "black",
+                     number.cex = 0.75,
+                     mar = c(2,2,2,2),
+                     main = 'Correlation Between Mean Genre Feature Values',
+                     family = 'Avenir')
 
 #recommendation engine UI#
 ##difference in records between df and sentiment##

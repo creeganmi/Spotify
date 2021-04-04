@@ -720,8 +720,6 @@ df <- df %>%
                                    TRUE ~ "other"))
 
 
-pop
-View(df)
 unique(df$grouped_genre)
 
 df %>%
@@ -802,12 +800,8 @@ sentiment <- df %>%
   summarise(score = sum(value))
 
 dim(sentiment)
-
 print(head(as.data.frame(sentiment)))
-
 sentiment
-
-View(sentiment)
 
 ##difference in records between df and sentiment##
 library(arsenal)
