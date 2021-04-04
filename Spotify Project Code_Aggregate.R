@@ -2,7 +2,6 @@
 ## Authors: Patrick Alvermann, Arielle Brandt, Michael Creegan, Clara Foung, Nikolai Romanov
 ## Date: April 5, 2021
 
-
 #### Initial Data Cleaning and Exploration (Proposal) ####
 
 library(readr)
@@ -333,8 +332,6 @@ cor_train = c(cor1_train, cor2_train, cor3_train, cor4_train, cor5_train, cor6_t
 table_onevar_RMSE_p = data.frame(variable, df_pop_cor, cor_train, p_train_onevar, RMSE_train_onevar, RMSE_test_onevar)
 table_onevar_RMSE_p = rename(table_onevar_RMSE_p, cor_alldata=df_pop_cor, p_model_train=p_train_onevar, RMSE_train=RMSE_train_onevar, RMSE_test=RMSE_test_onevar)
 table_onevar_RMSE_p
-
-
 
 ## model with all features
 variable
