@@ -3,7 +3,7 @@
 ## Date: April 5, 2021
 
 
-#### Initial Data Cleaning and Exploration ####
+#### Initial Data Cleaning and Exploration (Proposal) ####
 
 library(readr)
 library(dplyr)
@@ -400,7 +400,9 @@ df %>%
   scale_x_continuous(breaks=seq(-5,5,1))+
   scale_fill_manual(values=c('tomato','seagreen'))+
   guides(fill=F)+
-  theme_wsj()
+  theme_wsj()+
+  labs(title = "Sentiment of all lyrics using afinn lexicon")
+
 
 ## Jockers Sentiment Lexicon ##
 library(lexicon)
@@ -427,7 +429,8 @@ df %>%
   scale_x_continuous(breaks=seq(-1,1,0.2))+
   scale_fill_manual(values=c('tomato','seagreen'))+
   guides(fill=F)+
-  theme_wsj()
+  theme_wsj()+
+  labs(title = "Sentiment of all lyrics using Jockers lexicon")
 
 ## Senticnet Sentiment Lexicon ##
 library(lexicon)
@@ -455,7 +458,8 @@ df %>%
   scale_x_continuous(breaks=seq(-1,1,0.2))+
   scale_fill_manual(values=c('tomato','seagreen'))+
   guides(fill=F)+
-  theme_wsj()
+  theme_wsj()+
+  labs(title = "Sentiment of all lyrics using Senticnet lexicon")
 
 ## Profanity Aware Lexicon ##
 df %>%
@@ -690,7 +694,10 @@ year_plot <- ggplot(plot_year,aes(x = year, y = count,group = 1)) +
        y = "No of songs released")
 year_plot
 
-##what characteristics describe a genre?##
+
+#### Final Product ####
+
+##Creating a grouped genre column##
 names(df)
 unique(df$genre)
 
@@ -774,16 +781,25 @@ avg_genre_cor %>%
                      main = 'Correlation Between Mean Genre Feature Values',
                      family = 'Avenir')
 
-##sentiment column#
+##Creating a song sentiment score column#
 
-names(df)
+afinn <- get_sentiments("afinn")
+glimpse(afinn)
 
-lexicon <- get_sentiments("afinn")
-glimpse(lexicon)
+nrc <- get_sentiments("nrc") #Saif M. Mohammad and Peter Turney. (2013), ``Crowdsourcing a Word-Emotion Association Lexicon.'' Computational Intelligence, 29(3): 436-465.
+glimpse(nrc)
+
+bing <- get_sentiments("bing")
+glimpse(bing)
+
+loughran <- get_sentiments("loughran") #Loughran-McDonald Sentiment lexicon. URL: https://sraf.nd.edu/textual-analysis/resources/ 
+glimpse(loughran)
+
+#want to have sentiment on a numerical scale so we used afinn
 
 sentiment <- df %>%
   unnest_tokens(word, lyrics, drop=FALSE) %>%
-  inner_join(lexicon) %>%
+  inner_join(afinn) %>%
   group_by(id, title, artist, genre, year, bpm, nrgy, dnce, dB, live, val, dur,
            acous, spch, pop, lyrics, grouped_genre) %>% # or add more columns to the group_by to retain all info
   summarise(score = sum(value))
@@ -794,8 +810,8 @@ print(head(as.data.frame(sentiment)))
 
 sentiment
 
+View(sentiment)
 
-#recommendation engine UI#
 ##difference in records between df and sentiment##
 library(arsenal)
 summary(comparedf(df, sentiment))
@@ -803,8 +819,11 @@ summary(comparedf(df, sentiment, by = "id"))
 
 dfSentiment <- left_join(sentiment, df)
 
-## Remove Duplicates ##
+
+## Remove duplicate songs##
 dfSentiment <- dfSentiment[!duplicated(dfSentiment[,c('title','artist')]),] 
+
+## UI code ##
 
 ui <- shinyUI(navbarPage(theme = shinytheme("slate"),"Let's recommend a song for you!",
                          tabPanel("Popularity",
